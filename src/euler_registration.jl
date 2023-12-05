@@ -20,7 +20,7 @@ function translate_z(image::Array, shift::Int, fill_value::Real)
     return translated_image
 end
 
-function euler_register!(param_path, param, fixed_image, moving_image, memory_dicts)
+function euler_register!(param_path, param, fixed_image, moving_image, memory_dict)
     downsample_factor = param["euler_downsample_factor"]
     batch_size = param["euler_batch_size"]
     euler_gpu = pyimport("euler_gpu")
