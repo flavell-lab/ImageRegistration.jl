@@ -1,0 +1,4 @@
+name = "ImageRegistration"
+uuid = "b69c2c98-356b-40cb-afa8-1432c6a95fe7"
+authors = ["Adam Atanas <adamatanas@gmail.com>"]
+version = "0.1.0"
