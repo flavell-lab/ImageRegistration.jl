@@ -11,7 +11,7 @@ export
     # crop_pad.jl
     crop_pad_bkg_subtract,
     # euler_registration.jl
-    euler_registration,
+    euler_register!,
     euler_transform_roi,
     translate_z
     # plot.jl
