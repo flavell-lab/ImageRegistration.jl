@@ -13,7 +13,7 @@ export
     # euler_registration.jl
     euler_register!,
     euler_transform_roi,
-    translate_z
+    translate_z,
     # plot.jl
     overlay_matrices
 end # module ImageRegistration
