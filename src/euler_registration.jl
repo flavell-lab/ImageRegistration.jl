@@ -181,7 +181,7 @@ function euler_register!(param_path, param, fixed_image, moving_image, memory_di
 
     # println(z_transform)
 
-    transformed_moving_image_xyz = translate_z(transformed_moving_image_xyz, Int(round(z_transform * size(resized_moving_image_xyz, 3) / 2)), 0.0)
+    transformed_moving_image_xyz = translate_z(transformed_moving_image_xyz, -Int(round(z_transform * size(resized_moving_image_xyz, 3) / 2)), 0.0)
 
     return outcomes, transformed_moving_image_xyz
 end
