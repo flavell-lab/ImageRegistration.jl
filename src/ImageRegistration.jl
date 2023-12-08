@@ -1,6 +1,6 @@
 module ImageRegistration
 
-using PyCall, Statistics, FlavellBase
+using PyCall, Statistics, FlavellBase, Colors
 
 include("init.jl")
 include("crop_pad.jl")
