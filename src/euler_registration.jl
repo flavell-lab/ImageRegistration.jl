@@ -219,6 +219,6 @@ function euler_transform_roi(roi_image, parameters_xy, parameters_xz, memory_dic
         2,
         interpolation=interpolation
     )
-    transformed_roi_image = translate_z(transformed_roi_image, Int(round(parameters_xz[2] * size(roi_image, 3) / 2)), 0.0)
+    transformed_roi_image = translate_z(transformed_roi_image, -Int(round(parameters_xz[2] * size(roi_image, 3) / 2)), 0.0)
     return transformed_roi_image
 end
