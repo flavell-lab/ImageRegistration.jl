@@ -1,3 +1,26 @@
+"""
+translate_z(image::Array, shift::Int, fill_value::Real)
+
+Translates a 3D image along the z-dimension by a specified number of slices.
+
+This function shifts the input `image` along the third dimension (z-axis) by `shift` slices. Positive values of `shift` move the image towards higher indices (deeper slices), while negative values move it towards lower indices. The empty spaces created by the shift are filled with `fill_value`.
+
+# Arguments
+- `image::Array`: A 3D array representing the image to be translated.
+- `shift::Int`: The number of slices to shift the image along the z-axis.
+  - Positive values shift forward along the z-axis.
+  - Negative values shift backward along the z-axis.
+- `fill_value::Real`: The value used to fill empty spaces created by the shift.
+
+# Returns
+- `translated_image::Array`: A new array of the same size as `image`, containing the translated image.
+
+# Example
+```julia
+# Shift the image 5 slices forward along the z-axis, filling empty slices with 0.0
+translated = translate_z(image, 5, 0.0)
+```
+"""
 function translate_z(image::Array, shift::Int, fill_value::Real)
     # Get the size of the image
     dims = size(image)
@@ -20,6 +43,47 @@ function translate_z(image::Array, shift::Int, fill_value::Real)
     return translated_image
 end
 
+"""
+    euler_register!(param_path, param::Dict, fixed_image::Array, moving_image::Array, memory_dict::Dict)
+
+Registers a moving image to a fixed image using Euler transformations in 3D.
+
+This function performs 3D image registration between a `fixed_image` and a `moving_image` using Euler transformations. The registration optimizes transformations in the XY and XZ planes sequentially. Downsampling and maximum intensity projections are used to improve computational efficiency.
+
+# Arguments
+- `param_path`: Dictionary of file paths (note: this parameter is not used within the function).
+- `param::Dict`: A dictionary containing registration parameters, including:
+  - `"euler_downsample_factor"`: Downsampling factor for projections.
+  - `"euler_batch_size"`: Batch size for grid search.
+  - Transformation ranges for translation and rotation (e.g., `"euler_x_translation_range_1"`).
+- `fixed_image::Array`: The fixed image to which the `moving_image` will be registered.
+- `moving_image::Array`: The moving image that will be transformed to align with the `fixed_image`.
+- `memory_dict::Dict`: A dictionary for storing intermediate computations and reusing memory allocations across function calls.
+
+# Returns
+- `outcomes::Dict`: A dictionary containing registration metrics and best transformation parameters, including:
+  - `"registered_image_xyz_gncc_0"`: Initial GNCC score before registration.
+  - `"registered_image_xyz_gncc_xy"`: GNCC score after XY-plane registration.
+  - `"registered_image_xyz_gncc_xz"`: GNCC score after XZ-plane registration.
+  - `"best_transformation_xy"`: Best transformation parameters for the XY plane.
+  - `"best_transformation_xz"`: Best transformation parameters for the XZ plane.
+- `transformed_moving_image_xyz::Array`: The moving image transformed to align with the fixed image.
+
+# Notes
+- This function relies on the `euler_gpu` Python module, which must be accessible via PyCall.
+- The registration process involves:
+  1. Computing the initial Global Normalized Cross-Correlation (GNCC) between the fixed and moving images.
+  2. Performing registration in the XY plane using downsampled maximum intensity projections along the Z-axis.
+  3. Transforming the moving image based on the best XY transformation.
+  4. Recomputing the GNCC after the XY transformation.
+  5. Performing registration in the XZ plane using projections along the Y-axis.
+  6. Adjusting the Z-translation of the moving image based on the best XZ transformation.
+
+# Example
+```julia
+outcomes, registered_image = euler_register!(param_path, param, fixed_image, moving_image, memory_dict)
+```
+"""
 function euler_register!(param_path, param, fixed_image, moving_image, memory_dict)
     downsample_factor = param["euler_downsample_factor"]
     batch_size = param["euler_batch_size"]
@@ -186,6 +250,46 @@ function euler_register!(param_path, param, fixed_image, moving_image, memory_di
     return outcomes, transformed_moving_image_xyz
 end
 
+"""
+    euler_transform_roi(
+        roi_image::Array,
+        parameters_xy,
+        parameters_xz,
+        memory_dict::Dict;
+        interpolation::String = "nearest"
+    )
+
+Applies Euler transformations to an ROI (Region of Interest) image using precomputed transformation parameters.
+
+This function transforms a given `roi_image` using Euler transformations specified by `parameters_xy` and `parameters_xz`. It aligns the ROI image according to the transformations obtained during the registration of corresponding images.
+
+# Arguments
+- `roi_image::Array`: The ROI image to be transformed.
+- `parameters_xy`: Transformation parameters for the XY plane (as obtained from registration).
+- `parameters_xz`: Transformation parameters for the XZ plane.
+- `memory_dict::Dict`: A dictionary containing memory allocations for transformations; helps in reusing memory across function calls.
+- `interpolation::String`: (Optional) The interpolation method to use during transformation. Default is `"nearest"`.
+
+# Returns
+- `transformed_roi_image::Array`: The transformed ROI image aligned according to the provided transformations.
+
+# Notes
+- The function uses the `euler_gpu` Python module via PyCall to perform the transformations.
+- Transformations include rotation and translation in the XY plane, followed by a Z-axis translation.
+- The `translate_z` function is used to apply the Z-shift calculated from `parameters_xz`.
+- Ensure that the `euler_gpu` module and required Python dependencies are properly installed and accessible.
+
+# Example
+```julia
+transformed_roi = euler_transform_roi(
+    roi_image,
+    best_transformation_xy,
+    best_transformation_xz,
+    memory_dict;
+    interpolation="nearest"
+)
+```
+"""
 function euler_transform_roi(roi_image, parameters_xy, parameters_xz, memory_dict; interpolation="nearest")
     euler_gpu = pyimport("euler_gpu")
     torch = pyimport("torch")
